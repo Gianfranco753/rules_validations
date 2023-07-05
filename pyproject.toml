@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "base"
+name = "rules_validations"
 version = "0.1.0"
 description = ""
 authors = ["Gianfranco Cossani <gianfranco.cossani@applydigital.com>"]
