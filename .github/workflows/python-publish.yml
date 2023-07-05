@@ -17,3 +17,5 @@ jobs:
           BRANCH: "main"
           ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISH_REGISTRY_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          POETRY_VERSION: "1.5.1"
+          POETRY_CORE_VERSION: "1.6.1"
