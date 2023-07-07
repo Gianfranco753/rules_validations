@@ -4,11 +4,11 @@ from enum import IntEnum
 def normalize_value(value) -> str:
     return value \
         .lower() \
-        .replace('á', 'a') \
-        .replace('é', 'e') \
-        .replace('í', 'i') \
-        .replace('ó', 'o') \
-        .replace('ú', 'u') \
+        .replace('á', 'a').replace('ä', 'a') \
+        .replace('é', 'e').replace('ë', 'e') \
+        .replace('í', 'i').replace('ï', 'i') \
+        .replace('ó', 'o').replace('ö', 'o') \
+        .replace('ú', 'u').replace('ü', 'u') \
         .replace('(', '_') \
         .replace(')', '_') \
         .replace('/', '_') \
