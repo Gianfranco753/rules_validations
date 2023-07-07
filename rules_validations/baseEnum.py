@@ -29,18 +29,13 @@ class BaseEnum(IntEnum):
 
     @classmethod
     def validate(cls, value: str):
-        print(1, value)
         try:
             if type(value) == str:
                 clean_value = normalize_value(value)
-                print(3, clean_value)
                 try:
-                    print(2, cls[clean_value])
                     return cls[clean_value]
                 except KeyError:
-                    print(4, cls(clean_value))
                     return cls(clean_value)
-
             elif type(value) == int:
                 return cls(value)
             else:
