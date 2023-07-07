@@ -9,6 +9,7 @@ def normalize_value(value) -> str:
         .replace('í', 'i').replace('ï', 'i') \
         .replace('ó', 'o').replace('ö', 'o') \
         .replace('ú', 'u').replace('ü', 'u') \
+        .replace('ñ', 'n') \
         .replace('(', '_') \
         .replace(')', '_') \
         .replace('/', '_') \
