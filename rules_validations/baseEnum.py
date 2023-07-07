@@ -13,7 +13,10 @@ def normalize_value(value) -> str:
         .replace(')', '_') \
         .replace('/', '_') \
         .replace('+', 'p') \
+        .replace('.', '') \
         .replace(',', '_') \
+        .replace(':', '') \
+        .replace(';', '') \
         .replace('-', '_') \
         .replace(' ', '_')
 
