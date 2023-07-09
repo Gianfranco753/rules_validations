@@ -1,42 +1,33 @@
 from enum import IntEnum
+from typing import Any
 
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
 
-def normalize_value(value) -> str:
-    return value \
-        .lower() \
-        .replace('á', 'a').replace('ä', 'a') \
-        .replace('é', 'e').replace('ë', 'e') \
-        .replace('í', 'i').replace('ï', 'i') \
-        .replace('ó', 'o').replace('ö', 'o') \
-        .replace('ú', 'u').replace('ü', 'u') \
-        .replace('ñ', 'n') \
-        .replace('(', '_') \
-        .replace(')', '_') \
-        .replace('/', '_') \
-        .replace('+', 'p') \
-        .replace('.', '') \
-        .replace(',', '_') \
-        .replace(':', '') \
-        .replace(';', '') \
-        .replace('-', '_') \
-        .replace(' ', '_')
+from rules_validations.normalize import normalize_value
 
 
 class BaseEnum(IntEnum):
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source: type[Any], handler: GetCoreSchemaHandler) -> CoreSchema:
+        schema = handler(source)
+        return core_schema.no_info_before_validator_function(cls.validate, schema)
 
     @classmethod
-    def validate(cls, value: str):
+    def validate(cls, value: str | int):
+        if isinstance(value, cls):
+            return value
         try:
-            if type(value) == str:
+            if isinstance(value, str):
                 clean_value = normalize_value(value)
                 try:
                     return cls[clean_value]
                 except KeyError:
-                    return cls(clean_value)
-            elif type(value) == int:
+                    try:
+                        return cls(clean_value)
+                    except ValueError:
+                        raise ValueError(f'{value} is not a valid {cls.__name__}')
+            elif isinstance(value, int):
                 return cls(value)
             else:
                 raise ValueError(f'{value} is not a valid {cls.__name__}')

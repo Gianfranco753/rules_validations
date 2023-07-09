@@ -1,60 +1,61 @@
-from typing import TypeVar, Callable, Generic, Any
+from dataclasses import dataclass
+from typing import TypeVar, Callable, Any
 
 from jinja2 import Environment, DebugUndefined
-from pydantic.error_wrappers import ErrorWrapper, ValidationError
 
 T = TypeVar('T')
 
 env = Environment(undefined=DebugUndefined)
 
 
-class Validators(Generic[T], dict[tuple[str, ...], list[Callable[[T], None]]]):
-    def __init__(self, pydantic_model: type[T]):
-        super().__init__()
-        self.pydantic_model = pydantic_model
+@dataclass
+class ErrorWrapper(BaseException):
+    key: str
+    exception: Exception
 
-    def get_type(self) -> type[T]:
-        return self.pydantic_model
 
-    def add(self, path: tuple[str, ...] | str, statement: Callable[[T], Any], message: str):
+ValidationError = BaseExceptionGroup
+
+
+class Validator:
+    _rules: dict = {}
+
+    def add(self, path: str, statement: Callable[[T], Any] | str, message: str):
+        if not callable(statement) and type(statement) != str:
+            raise ValueError("statement must be a callable or a str")
+
         def assertion(values: T):
-            statement_values = statement(values)
+            try:
+                if callable(statement):
+                    statement_values = statement(values)
+                else:
+                    statement_values = env.from_string(statement).render(values=values.dict())
+            except Exception as exc:
+                return ErrorWrapper(path, exc)
             if statement_values:
-                raise AssertionError(env.from_string(message).render(values=values.dict(), results=statement_values))
+                exc_msg = env.from_string(message).render(values=values.dict(), results=statement_values)
+                return ErrorWrapper(path, AssertionError(exc_msg))
 
         try:
-            self[path].append(assertion)
+            self._rules[path].append(assertion)
         except KeyError:
-            self[path] = [assertion]
+            self._rules[path] = [assertion]
 
-    def __setitem__(self, key, value):
-        key = key if type(key) is tuple else (key,)
-        return super().__setitem__(key, value)
-
-    def __getitem__(self, item):
-        item = item if type(item) is tuple else (item,)
-        return super().__getitem__(item)
-
-    def __call__(self, pydantic_values: T | None = None, **kwargs):
+    def __call__(self, values: T, **kwargs):
         validation_errors: list[ErrorWrapper] = []
-        # validate model
-        if not isinstance(pydantic_values, self.pydantic_model):
-            try:
-                pydantic_values = self.pydantic_model(**kwargs)
-            except ValidationError as exc:
-                for error in exc.raw_errors:
-                    validation_errors.append(error)
-        # validate other functions
-        for item in pydantic_values.dict().keys():
-            try:
-                for validator in self[item]:
-                    try:
-                        validator(pydantic_values)
-                    except (ValidationError, ValueError, AssertionError) as e:
-                        validation_errors.append(ErrorWrapper(e, (item,)))
-                    except AttributeError:
-                        pass  # print(e.name, e.obj, e.args)
-            except KeyError:
-                pass  # No existe una regla para este key
+        for item, validators in self._rules.items():
+            for validator in validators:
+                if exc := validator(values):
+                    validation_errors.append(exc)
         if validation_errors:
-            raise ValidationError(validation_errors, self.pydantic_model)
+            raise ValidationError('', validation_errors)
+
+    def add_json(self, json_data: dict):
+        for path, rule in json_data.items():
+            self.add(path, rule['test'], rule['msg'])
+
+    @classmethod
+    def from_json(cls, json_data: dict):
+        new_instance = cls()
+        new_instance.add_json(json_data)
+        return new_instance

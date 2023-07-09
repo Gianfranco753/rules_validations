@@ -1,0 +1,6 @@
+{
+  "val": {
+    "test": "{% if values.val == 5 %}True{% endif %}",
+    "msg": "JSON val == 5"
+  }
+}
