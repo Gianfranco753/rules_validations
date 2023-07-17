@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rules_validations"
-version = "0.4.1"
+version = "0.5.0"
 description = ""
 authors = ["Gianfranco Cossani <gianfranco.cossani@applydigital.com>"]
 readme = "README.md"
