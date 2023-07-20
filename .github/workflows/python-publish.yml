@@ -3,7 +3,7 @@ name: Build and publish python package
 on:
   push:
     tags:
-      - *
+      - '*'
 
 jobs:
   publish-service-client-package:
