@@ -1,6 +1,8 @@
-{
-  "val": {
-    "test": "{% if values.val == 5 %}True{% endif %}",
+[
+  {
+    "active": false,
+    "path": "val",
+    "test": "{{ values.val == 5 }}",
     "msg": "JSON val == 5"
   }
-}
+]

@@ -1,12 +1,10 @@
-import json
-
 from pydantic import BaseModel, ValidationError
 
 from rules_validations import Validator
 from rules_validations.baseEnum import BaseEnum
 
 with open('test.json') as f:
-    validator = Validator.from_json(json.load(f))
+    validator = Validator.from_json_file(f)
 validator.add('val',
               lambda values: values.val != 1,
               "Valor distinto de 1")
@@ -26,7 +24,7 @@ class Ident(BaseEnum):
 class Noti(BaseModel):
     val: int
     foo: str
-    bar: Ident
+    bar: Ident | None
     txt: str
 
 
@@ -36,6 +34,7 @@ notis = (
     dict(val=3, foo='Malo', bar='echao', txt='Hola'),
     dict(val=4, foo='Malo', bar='chao', txt='Malo'),
     dict(val=5, foo='', bar='chao', txt='Hola'),
+    dict(val=1, foo='', bar=None, txt='Hola'),
 )
 for index, noti_data in enumerate(notis):
     try:

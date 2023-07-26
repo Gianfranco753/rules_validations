@@ -1,35 +1,23 @@
-from dataclasses import dataclass
-from typing import TypeVar, Callable, Any
+import json
+from typing import TypeVar, Callable, Any, IO
 
 from jinja2 import Environment, DebugUndefined
+
+from rules_validations.models.errors import ErrorWrapper, ValidationError
+from rules_validations.models.rules import Rule
 
 T = TypeVar('T')
 
 env = Environment(undefined=DebugUndefined)
 
 
-@dataclass
-class ErrorWrapper(BaseException):
-    key: str
-    exception: Exception
-
-
-ValidationError = BaseExceptionGroup
-
-
 class Validator:
     _rules: dict = {}
 
-    def add(self, path: str, statement: Callable[[T], Any] | str, message: str):
-        if not callable(statement) and type(statement) != str:
-            raise ValueError("statement must be a callable or a str")
-
+    def add(self, path: str, statement: Callable[[T], Any], message: str):
         def assertion(values: T):
             try:
-                if callable(statement):
-                    statement_values = statement(values)
-                else:
-                    statement_values = env.from_string(statement).render(values=values.dict())
+                statement_values = statement(values)
             except Exception as exc:
                 return ErrorWrapper(path, exc)
             if statement_values:
@@ -50,12 +38,39 @@ class Validator:
         if validation_errors:
             raise ValidationError('', validation_errors)
 
-    def add_json(self, json_data: dict):
-        for path, rule in json_data.items():
-            self.add(path, rule['test'], rule['msg'])
+    @classmethod
+    def from_dict(cls, rules: list[Rule]):
+        new_instance = cls()
+        for rule in rules:
+            if rule["active"]:
+                new_instance.add(
+                    rule["path"],
+                    rule['test'],
+                    rule['msg']
+                )
+        return new_instance
 
     @classmethod
-    def from_json(cls, json_data: dict):
-        new_instance = cls()
-        new_instance.add_json(json_data)
-        return new_instance
+    def from_json_string(cls, json_str: str):
+        return cls.from_dict([{
+            "active": rule['active'],
+            "path": rule['path'],
+            "test": lambda values: env.from_string(rule['test']).render(values=values.dict()) == 'True',
+            "msg": read_file_msg(rule['msg']),
+        } for rule in json.loads(json_str)])
+
+    @classmethod
+    def from_json_file(cls, json_file: IO):
+        return cls.from_json_string(json_file.read())
+
+
+def read_file_msg(msg: str | dict) -> str:
+    if isinstance(msg, str):
+        return msg
+    if isinstance(msg, dict):
+        if msg["type"] == 'template':
+            return msg['value']
+        if msg["type"] == 'file':
+            with open(msg['value']) as f:
+                return f.read()
+    raise ValueError("msg not valid")
